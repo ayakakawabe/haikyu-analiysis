@@ -1,0 +1,151 @@
+---
+title: "Haikyu_analysis"
+author: "Ayaka Kawabe"
+date: '2022-08-16'
+output: html_document
+---
+
+# Haikyu(R言語)
+
+## 高校生編の分析
+
+highschoolのデータを取得
+```{r}
+school<-read.csv("highschool.csv",row.names=1,stringsAsFactors = T)
+school$school<-factor(school$school)
+school$number<-factor(school$number)
+school$position<-factor(school$position)
+school$grade<-factor(school$grade)
+head(school)
+```
+
+### データの要約
+
+```{r}
+summary(school)
+```
+### 一元配置分散分析
+
+データ加工
+
+```{r}
+#常波・森然以外のデータ
+data<-subset(school,((school!="5")&(school!="11")))
+#学校名と身長のデータ
+schooldata_aov<-data.frame(school=data$school,height=data$height)
+head(schooldata_aov)
+```
+
+学校によって身長の平均に差があるか
+(常波・森然以外)
+
+箱ひげ図
+
+```{r}
+boxplot(height~school,data=school)
+```
+
+
+帰無仮説：いずれかの学校の身長の平均に差がない
+対立仮説：いずれかの学校の身長の平均に差がある
+
+```{r}
+school_aov<-aov(height~school,data=schooldata_aov)
+summary(school_aov)
+```
+帰無仮説を受容
+
+
+リベロを含めずに分析してみる
+
+```{r}
+#リベロなしのデータ
+data2<-subset(data,position!="4")
+schooldata_aov2<-data.frame(school=data2$school,height=data2$height)
+head(schooldata_aov2)
+```
+箱ひげ図
+
+```{r}
+boxplot(height~school,data=schooldata_aov2)
+```
+
+
+帰無仮説：いずれかの学校のリベロ以外の身長の平均に差がない
+対立仮説：いずれかの学校のリベロ以外の身長の平均に差がある
+
+```{r}
+school_aov<-aov(height~school,data=schooldata_aov2)
+summary(school_aov)
+```
+
+帰無仮説を受容
+
+### 主成分分析
+
+#### 使用データ
+
+```{r}
+schooldata_pca<-school[,8:13]
+head(schooldata_pca)
+```
+
+####主成分数の決定
+
+```{r}
+library(psych)
+fa.parallel(schooldata_pca,fa="pc")
+abline(1,0)
+
+```
+
+平行分析：3
+カイザー基準：3
+
+
+####分析結果
+
+```{r}
+library(FactoMineR)
+highschool_pca<-PCA(schooldata_pca,scale.unit = TRUE)
+```
+
+主成分負荷量マップ
+
+```{r}
+plot(highschool_pca,choix = "var",axes = c(1,3))
+plot(highschool_pca,choix = "var",axes = c(2,3))
+```
+
+
+主成分スコアのプロット
+
+```{r}
+plot(highschool_pca,choix="ind",cex=0.5)
+plot(highschool_pca,choix="ind",axes=c(1,3),cex=0.6)
+plot(highschool_pca,choix="ind",axes=c(2,3),cex=0.6)
+```
+
+バイプロット(ポジション別)
+
+```{r}
+library(factoextra)
+fviz_pca_biplot(highschool_pca,axes=c(1,2),pointsize=0.6,col.var = "black",habillage = school$position)
+fviz_pca_biplot(highschool_pca,axes=c(1,3),pointsize=0.6,col.var = "black",habillage = school$position)
+fviz_pca_biplot(highschool_pca,axes=c(2,3),pointsize=0.6,col.var = "black",habillage = school$position)
+```
+
+各変数の主成分への寄与率
+
+```{r}
+highschool_pca$svd$V
+fviz_contrib(highschool_pca,choice = "var",axes=1)
+fviz_contrib(highschool_pca,choice = "var",axes=2)
+fviz_contrib(highschool_pca,choice = "var",axes=3)
+```
+
+スクリ―プロット(寄与率)
+
+```{r}
+fviz_screeplot(highschool_pca,addlabels=TRUE)
+```
